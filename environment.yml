@@ -1,0 +1,14 @@
+name: base
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - flask
+  - requests
+  - authlib
+  - ipython
+  - certifi
+  - pip
+  - pip:
+      - http.client
+      - logging
