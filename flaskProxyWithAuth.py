@@ -278,6 +278,44 @@ def _app6(path0, path1, path2):
     else:
         return jsonify({"message": "You are not logged in."}), 401
 
+@app.route("/<string:path0>/<string:path1>/<string:path2>/<string:path3>/<string:filename>", methods=["GET", "POST", "PUT", "DELETE"])
+def _app7(path0, path1, path2, path3, filename):
+    user = session.get("user")
+    print(f"path0: {path0}")
+    print(f"path1: {path1}")
+    print(f"path2: {path2}")
+    print(f"path3: {path3}")
+    print(f"filename: {filename}")
+    print(f"request method: {request.method}")
+    if user:
+        #return jsonify({"message": "You are authenticated!", "user": user}), 200
+        #if path1=='..':
+        #    path1 = 'immutable' # this is such a kludge, we'll see if it works
+        target_url = f'http://localhost:80/{path0}/{path1}/{path2}/{path3}/{filename}'
+        # Construct the new request to the target service
+        resp = requests.request(
+            method=request.method,
+            url=target_url,
+            headers={key: value for (key, value) in request.headers if key != 'Host'},
+            data=request.get_data(),
+            cookies=request.cookies,
+            allow_redirects=True,
+            params=request.args
+        )
+
+        # Create a Flask response object from the target service's response
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        headers = [(name, value) for (name, value) in resp.raw.headers.items() if name.lower() not in excluded_headers]
+        response = Response(resp.content, resp.status_code, headers)
+
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+
+        return response
+    else:
+        return jsonify({"message": "You are not logged in."}), 401
+
 # Login page
 @app.route("/login_flask", methods=["POST"])
 def login_flask():
