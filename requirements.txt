@@ -1,1 +1,8 @@
-colorama
+python
+flask
+requests
+authlib
+ipython
+certifi
+http.client
+logging
