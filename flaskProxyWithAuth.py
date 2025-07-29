@@ -78,102 +78,26 @@ def index():
         #     </form>
         # ''')
 
-@app.route("/<string:path0>/<string:path1>/<string:path2>/<string:filename>", methods=["GET", "POST", "PUT", "DELETE"])
-def _app(path0, path1, path2, filename):
+# Custom route to handle arbitrary path sequences
+@app.route("/<path:arbitrary_path>", methods=["GET", "POST", "PUT", "DELETE"])
+def flask_internal_proxy(arbitrary_path):
     user = session.get("user")
-    print(f"path0: {path0}")
-    print(f"path1: {path1}")
-    print(f"path2: {path2}")
-    print(f"filename: {filename}")
-    print(f"request method: {request.method}")
     if user:
-        #return jsonify({"message": "You are authenticated!", "user": user}), 200
-        #if path1=='..':
-        #    path1 = 'immutable' # this is such a kludge, we'll see if it works
-        target_url = f'http://localhost:{internal_app_port}/{path0}/{path1}/{path2}/{filename}'
+        # Convert the arbitrary path string to a list
+        path_elements = arbitrary_path.split("/")
+        # Build the target_url dynamically
+        target_url = f"http://localhost:{internal_app_port}/" + "/".join(path_elements)
 
         return internal_request_handler(request, target_url)
     else:
-        return jsonify({"message": "You are not logged in."}), 401
-
-@app.route("/<string:path1>/<string:path2>", methods=["GET", "POST", "PUT", "DELETE"])
-def _app2(path1, path2):
-    user = session.get("user")
-    if user:
-        target_url = f'http://localhost:{internal_app_port}/{path1}/{path2}'
-
-        return internal_request_handler(request, target_url)
-    else:
-        return jsonify({"message": "You are not logged in."}), 401
-
-@app.route("/<string:data>", methods=["GET", "POST", "PUT", "DELETE"])
-def _app3(data):
-    user = session.get("user")
-    print(f"data: {data}")
-    print(f"request method: {request.method}")
-    allowed_paths = ['plans', 'models', 'scheduling', 'sequencing', 'constraints', 'tags', 'external_sources', 'dictionaries', 'expansion', 'parcels', 'documentation', 'gateway', 'about']
-    if user:
-    #if user and (('__data.json' in data) or ('favicon.svg' in data) or (data in allowed_paths) ):
-        target_url = f'http://localhost:{internal_app_port}/{data}'
-
-        return internal_request_handler(request, target_url)
-    else:
-        return jsonify({"message": "You are not logged in."}), 401
-
-@app.route("/login", methods=["GET", "POST", "PUT", "DELETE"])
-def _app4():
-    user = session.get("user")
-    if user:
-        target_url = f'http://localhost:{internal_app_port}/login'
-
-        return internal_request_handler(request, target_url)
-    else:
-        return jsonify({"message": "You are not logged in."}), 401
-
-@app.route("/_app/<string:filename>", methods=["GET", "POST", "PUT", "DELETE"])
-def _app5(filename):
-    user = session.get("user")
-    print(f"filename: {filename}")
-    print(f"request method: {request.method}")
-    if user:
-    #if user and (('version.json' in filename) ):
-        target_url = f'http://localhost:{internal_app_port}/_app/{filename}'
-
-        return internal_request_handler(request, target_url)
-    else:
-        return jsonify({"message": "You are not logged in."}), 401
-
-@app.route("/<string:path0>/<string:path1>/<string:path2>", methods=["GET", "POST", "PUT", "DELETE"])
-def _app6(path0, path1, path2):
-    user = session.get("user")
-    if user:
-        #return jsonify({"message": "You are authenticated!", "user": user}), 200
-        #if path1=='..':
-        #    path1 = 'immutable' # this is such a kludge, we'll see if it works
-        target_url = f'http://localhost:{internal_app_port}/{path0}/{path1}/{path2}'
-
-        return internal_request_handler(request, target_url)
-    else:
-        return jsonify({"message": "You are not logged in."}), 401
-
-@app.route("/<string:path0>/<string:path1>/<string:path2>/<string:path3>/<string:filename>", methods=["GET", "POST", "PUT", "DELETE"])
-def _app7(path0, path1, path2, path3, filename):
-    user = session.get("user")
-    # print(f"path0: {path0}")
-    # print(f"path1: {path1}")
-    # print(f"path2: {path2}")
-    # print(f"path3: {path3}")
-    # print(f"filename: {filename}")
-    # print(f"request method: {request.method}")
-    if user:
-        #return jsonify({"message": "You are authenticated!", "user": user}), 200
-        #if path1=='..':
-        #    path1 = 'immutable' # this is such a kludge, we'll see if it works
-        target_url = f'http://localhost:{internal_app_port}/{path0}/{path1}/{path2}/{path3}/{filename}'
-
-        return internal_request_handler(request, target_url)
-    else:
-        return jsonify({"message": "You are not logged in."}), 401
+        redirect_uri = url_for("oauth2", _external=True)
+        return oauth.keycloak.authorize_redirect(redirect_uri)
+        # return render_template_string('''
+        #     <h1>Hello, you are not logged in.</h1>
+        #     <form action="{{ url_for('login_flask') }}" method="post">
+        #         <button type="submit">Login</button>
+        #     </form>
+        # ''')
 
 # Login page
 @app.route("/login_flask", methods=["POST"])
