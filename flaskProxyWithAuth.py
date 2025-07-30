@@ -66,7 +66,6 @@ def index():
     if user:
         #return jsonify({"message": "You are authenticated!", "user": user}), 200
         target_url = f"http://localhost:{internal_app_port}/"
-
         return internal_request_handler(request, target_url)
     else:
         redirect_uri = url_for("oauth2", _external=True)
@@ -79,15 +78,11 @@ def index():
         # ''')
 
 # Custom route to handle arbitrary path sequences
-@app.route("/<path:arbitrary_path>", methods=["GET", "POST", "PUT", "DELETE"])
-def flask_internal_proxy(arbitrary_path):
+@app.route("/<path:some_path>", methods=["GET", "POST", "PUT", "DELETE"])
+def flask_internal_proxy(some_path):
     user = session.get("user")
     if user:
-        # Convert the arbitrary path string to a list
-        path_elements = arbitrary_path.split("/")
-        # Build the target_url dynamically
-        target_url = f"http://localhost:{internal_app_port}/" + "/".join(path_elements)
-
+        target_url = f"http://localhost:{internal_app_port}/{some_path}"
         return internal_request_handler(request, target_url)
     else:
         redirect_uri = url_for("oauth2", _external=True)
