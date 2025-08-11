@@ -5,6 +5,7 @@ from authlib.integrations.flask_client import OAuth
 import requests
 from http.client import HTTPConnection
 import logging
+from time import time
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 #load_dotenv()
@@ -36,12 +37,27 @@ def internal_request_handler(request, target_url="http://localhost:80"):
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
 
-    print(f"Response from target URL: {target_url}")
+    #print(f"Response from target URL: {target_url}")
     print(f"Response status code: {resp.status_code}")
     print(f"Response headers: {headers}")
 
     return response
 
+def is_token_expired(token):
+    if not token or 'expires_at' not in token:
+        return True
+    return token['expires_at'] < time()
+
+def check_user_session_then_proxy(target_url="http://localhost:80"):
+    user = session.get("user")
+    token = session.get("token")
+    if user and token and not is_token_expired(token):
+        return internal_request_handler(request, target_url)
+    else:
+        session.pop("user", None)
+        session.pop("token", None)
+        redirect_uri = url_for("oauth2", _external=True)
+        return oauth.keycloak.authorize_redirect(redirect_uri)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
@@ -50,6 +66,7 @@ app.wsgi_app = ProxyFix(
 )
 
 internal_app_port = os.getenv("INTERNAL_APPLICATION_PORT", 80)
+inbound_port = os.getenv("INBOUND_PORT", 8088)
 
 oauth = OAuth(app)
 oauth.register(
@@ -62,56 +79,28 @@ oauth.register(
 
 @app.route("/", methods=["GET", "POST", "PUT", "DELETE"])
 def index():
-    user = session.get("user")
-    if user:
-        #return jsonify({"message": "You are authenticated!", "user": user}), 200
-        target_url = f"http://localhost:{internal_app_port}/"
-        return internal_request_handler(request, target_url)
-    else:
-        redirect_uri = url_for("oauth2", _external=True)
-        return oauth.keycloak.authorize_redirect(redirect_uri)
-        # return render_template_string('''
-        #     <h1>Hello, you are not logged in.</h1>
-        #     <form action="{{ url_for('login_flask') }}" method="post">
-        #         <button type="submit">Login</button>
-        #     </form>
-        # ''')
+    target_url = f"http://localhost:{internal_app_port}/"
+    return check_user_session_then_proxy(target_url)
 
 # Custom route to handle arbitrary path sequences
 @app.route("/<path:some_path>", methods=["GET", "POST", "PUT", "DELETE"])
 def flask_internal_proxy(some_path):
-    user = session.get("user")
-    if user:
-        target_url = f"http://localhost:{internal_app_port}/{some_path}"
-        return internal_request_handler(request, target_url)
-    else:
-        redirect_uri = url_for("oauth2", _external=True)
-        return oauth.keycloak.authorize_redirect(redirect_uri)
-        # return render_template_string('''
-        #     <h1>Hello, you are not logged in.</h1>
-        #     <form action="{{ url_for('login_flask') }}" method="post">
-        #         <button type="submit">Login</button>
-        #     </form>
-        # ''')
-
-# Login page
-@app.route("/login_flask", methods=["POST"])
-def login_flask():
-    redirect_uri = url_for("oauth2", _external=True)
-    return oauth.keycloak.authorize_redirect(redirect_uri)
+    target_url = f"http://localhost:{internal_app_port}/{some_path}"
+    return check_user_session_then_proxy(target_url)
 
 # Auth callback
 @app.route("/oauth2")
 def oauth2():
     token = oauth.keycloak.authorize_access_token()
-    #print(token)
     session["user"] = oauth.keycloak.parse_id_token(token, None)
+    session["token"] = token
     return redirect("/")
 
 # Logout
 @app.route("/logout", methods=["POST"])
 def logout():
     session.pop("user", None)
+    session.pop("token", None)
     logout_url = f"{os.getenv('KEYCLOAK_LOGOUT_URL')}?redirect_uri={url_for('index', _external=True)}"
     return redirect(logout_url)
 
@@ -124,4 +113,4 @@ if __name__ == "__main__":
     requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
 
-    app.run(host="0.0.0.0", port=8088, debug=True)
+    app.run(host="0.0.0.0", port=inbound_port, debug=True)
