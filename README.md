@@ -17,6 +17,8 @@
 
 This repository provides a simple Flask app that (a) performs user authentication with a KeyCloak server using the OIDC Authorization Code Flow and then (b) forward proxies authenticated user requests to a web-app running on the same server.  This Flask app must be running locally on the same server as this web-app, e.g., web-app is running as a set of containers running on a docker network.  The KeyCloak authN endpoint is assumed to be deployed already. 
 
+[TODO: Add a diagram that shows (a) a KeyCloak server, (b) a server with a Flask app and a web app running on it, (c) Flask app forwarding on http://localhost:{some_port} to the web app, (d) OIDC authN flow between the Flask app and the KeyCloak server.]
+
 ## Features
 
 * Authentication is enforced by: (1) requiring an access token in the user request header; (2) validating the access token; (3) only forwarding requests with valid access tokens to your web-app.  If no token is provided in the user request or the provided token is not valid (e.g., is expired), the user will be redirected to the KeyCloak login page which then kicks off the OIDC authN flow.
