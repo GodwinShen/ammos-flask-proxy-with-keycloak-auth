@@ -7,37 +7,23 @@
 <!-- ☝️ Replace with your logo (if applicable) via ![](https://uri-to-your-logo-image) ☝️ -->
 <!-- ☝️ If you see logo rendering errors, make sure you're not using indentation, or try an HTML IMG tag -->
 
-<h1 align="center">[INSERT YOUR REPO / PROJ NAME HERE]</h1>
-<!-- ☝️ Replace with your repo name ☝️ -->
+<h1 align="center">[Flask Forward Proxy Using KeyCloak OIDC]</h1>
 
 </div>
 
-<pre align="center">[INSERT A SINGLE SENTENCE DESCRIBING THE PURPOSE OF YOUR REPO / PROJ]</pre>
-<!-- ☝️ Replace with a single sentence describing the purpose of your repo / proj ☝️ -->
+<pre align="center">[A simple Flask app that provides KeyCloak OIDC authN support for any web-app]</pre>
 
 <!-- Header block for project -->
 
-[INSERT YOUR BADGES HERE (SEE: https://shields.io)] [![SLIM](https://img.shields.io/badge/Best%20Practices%20from-SLIM-blue)](https://nasa-ammos.github.io/slim/)
-<!-- ☝️ Add badges via: https://shields.io e.g. ![](https://img.shields.io/github/your_chosen_action/your_org/your_repo) ☝️ -->
-
-[INSERT SCREENSHOT OF YOUR SOFTWARE, IF APPLICABLE]
-<!-- ☝️ Screenshot of your software (if applicable) via ![](https://uri-to-your-screenshot) ☝️ -->
-
-[INSERT MORE DETAILED DESCRIPTION OF YOUR REPOSITORY HERE]
-<!-- ☝️ Replace with a more detailed description of your repository, including why it was made and whom its intended for.  ☝️ -->
-
-[INSERT LIST OF IMPORTANT PROJECT / REPO LINKS HERE]
-<!-- example links>
-[Website](INSERT WEBSITE LINK HERE) | [Docs/Wiki](INSERT DOCS/WIKI SITE LINK HERE) | [Discussion Board](INSERT DISCUSSION BOARD LINK HERE) | [Issue Tracker](INSERT ISSUE TRACKER LINK HERE)
--->
+[This repository provides a simple Flask app that (a) performs user authentication with a KeyCloak server using the OIDC Authorization Code Flow and then (b) forward proxies authenticated user requests to a web-app running on the same server.  This Flask app must be running locally on the same server as this web-app, e.g., web-app is running as a set of containers running on a docker network.  The KeyCloak authN endpoint is assumed to be deployed already. ]
 
 ## Features
 
-* [INSERT LIST OF FEATURES IMPORTANT TO YOUR USERS HERE]
-* Python build tooling based on PEP-517 and PEP-518 standards
-* Build, release and publish automation takes place automatically using GitHub Actions. 
+* Authentication is enforced by: (1) requiring an access token in the user request header; (2) validating the access token; (3) only forwarding requests with valid access tokens to your web-app.  If no token is provided in the user request or the provided token is not valid (e.g., is expired), the user will be redirected to the KeyCloak login page which then kicks off the OIDC authN flow.
+* Uses the Flask OIDC library to (a) check user authentication status, (b) keep track of authenticated sessions and (c) perform OIDC Authorization Code Flow authentication before forwarding user requests to the web-app
+* Uses the Flask KeyCloak library to broker the OIDC Authorization Code Flow between the Flask app and the KeyCloak server
+* Since KeyCloak is used, this provides a very flexible OIDC authN solution since a user can authenticate directly with KeyCloak, or KeyCloak can be used as an identity broker with an external Identity Provider (e.g., github, google) and KeyCloak will handle the additional OIDC authN flow with the Identiy Provider.  Either way, this Flask app only needs to integrate ONCE with the KeyCloak server.
   
-<!-- ☝️ Replace with a bullet-point list of your features ☝️ -->
 
 ## Contents
 
@@ -50,7 +36,26 @@
 
 ## Quick Start
 
-This guide provides a quick way to get started with our project. Please see our [docs]([INSERT LINK TO DOCS SITE / WIKI HERE]) for a more comprehensive overview.
+This guide provides a quick way to get started with our project. Please see our [docs]([INSERT LINK TO DOCS SITE / WIKI HERE]) for a more comprehensive overview.  
+* Deploy your web-app on your server and have it listen on localhost on your INTERNAL_APPLICATION_PORT of your choosing
+* Setup your web server to listen your desired INBOUND_PORT (e.g., using NGINX server listening on INBOUND_PORT, an AWS ALB with a listener on INBOUND_PORT that forwards requests to the EC2 that your web-app is running on, etc)
+* Build a python environment using the environment.yml file provided in this repo.  See the Requirements and Setup Instructions below for more details on how to do it
+* Set the following environment variables for the Flask app to use internally for the OIDC autnN flow with your KeyCloak server:
+1. INTERNAL_APPLICATION_PORT: after the user successfully authenticates with the KeyCloak server, the Flask app will forward proxy the user request on this port (i.e., on http://localhost:{INTERNAL_APPLICATION_PORT}); default is port 80
+2. INBOUND_PORT: this is the inbound port that the user request comes in on, the Flask app listens on this port; default is port 8088
+3. FLASK_SECRET_KEY: secret key for the Flask app itself, this can be set to any arbitrary value; default is "my_secret_key"
+4. KEYCLOAK_SERVER_METADATA_URL: OIDC configuration URL that the Flask app will use to identify auth/token/userinfo/certs/etc endpoints for the KeyCloak server, it will be of the form https://{KeyCloak_server_domain_name}/realms/{KeyCloak_realm}/.well-known/openid-configuration; there is no default value
+5. KEYCLOAK_CLIENT_ID: the KeyCloak Client ID where the Flask app will send the OIDC authN requests; there is no default value
+6. KEYCLOAK_CLIENT_SECRET: the secret for the client specified in KEYCLOAK_CLIENT_ID; there is no default value
+7. KEYCLOAK_LOGOUT_URL: the KeyCloak server's logout URL, it will be of the form https://{KeyCloak_server_domain_name}/realms/{KeyCloak_realm}/protocol/openid-connect/logout
+* Run the following command:
+```
+python flaskProxyWithAuth.py
+```
+* If you set up everything correctly, this should work!
+
+To test that auth is working, simply navigate to your web-app at https://{your_webapp_domain_name}:{INBOUND_PORT} and you should be redirected to your KeyCloak server login page.  Login and if successful, the Flask app should forward you to your web-app and voila, you've got OIDC authentication with KeyCloak up and running!
+
 
 ### Requirements
 
