@@ -7,7 +7,7 @@
 <!-- ☝️ Replace with your logo (if applicable) via ![](https://uri-to-your-logo-image) ☝️ -->
 <!-- ☝️ If you see logo rendering errors, make sure you're not using indentation, or try an HTML IMG tag -->
 
-<h1 align="center">[Flask Forward Proxy Using KeyCloak OIDC]</h1>
+<h1 align="center">Flask Forward Proxy With KeyCloak OIDC Authentication</h1>
 
 </div>
 
