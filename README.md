@@ -11,11 +11,11 @@
 
 </div>
 
-<pre align="center">[A simple Flask app that provides KeyCloak OIDC authN support for any web-app]</pre>
+<pre align="center">A simple Flask app that provides KeyCloak OIDC authN support for any web-app</pre>
 
 <!-- Header block for project -->
 
-[This repository provides a simple Flask app that (a) performs user authentication with a KeyCloak server using the OIDC Authorization Code Flow and then (b) forward proxies authenticated user requests to a web-app running on the same server.  This Flask app must be running locally on the same server as this web-app, e.g., web-app is running as a set of containers running on a docker network.  The KeyCloak authN endpoint is assumed to be deployed already. ]
+This repository provides a simple Flask app that (a) performs user authentication with a KeyCloak server using the OIDC Authorization Code Flow and then (b) forward proxies authenticated user requests to a web-app running on the same server.  This Flask app must be running locally on the same server as this web-app, e.g., web-app is running as a set of containers running on a docker network.  The KeyCloak authN endpoint is assumed to be deployed already. 
 
 ## Features
 
