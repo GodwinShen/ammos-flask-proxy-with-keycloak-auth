@@ -1,5 +1,8 @@
 import os
 from flask import request, jsonify, Response, Flask, redirect, url_for, session, render_template_string, render_template
+import secrets
+import hashlib
+import base64
 from authlib.integrations.flask_client import OAuth
 #from dotenv import load_dotenv
 import requests
@@ -48,6 +51,13 @@ def is_token_expired(token):
         return True
     return token['expires_at'] < time()
 
+def generate_pkce_pair():
+    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b'=').decode('utf-8')
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    ).rstrip(b'=').decode('utf-8')
+    return code_verifier, code_challenge
+
 def check_user_session_then_proxy(target_url="http://localhost:80"):
     user = session.get("user")
     token = session.get("token")
@@ -56,8 +66,16 @@ def check_user_session_then_proxy(target_url="http://localhost:80"):
     else:
         session.pop("user", None)
         session.pop("token", None)
+        # PKCE: generate code_verifier and code_challenge
+        code_verifier, code_challenge = generate_pkce_pair()
+        session["pkce_code_verifier"] = code_verifier
         redirect_uri = url_for("oauth2", _external=True)
-        return oauth.keycloak.authorize_redirect(redirect_uri)
+        # Pass PKCE params to authorize_redirect
+        return oauth.keycloak.authorize_redirect(
+            redirect_uri,
+            code_challenge=code_challenge,
+            code_challenge_method="S256"
+        )
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
@@ -91,7 +109,11 @@ def flask_internal_proxy(some_path):
 # Auth callback
 @app.route("/oauth2")
 def oauth2():
-    token = oauth.keycloak.authorize_access_token()
+    # PKCE: pass code_verifier when fetching token
+    code_verifier = session.pop("pkce_code_verifier", None)
+    token = oauth.keycloak.authorize_access_token(
+        code_verifier=code_verifier
+    )
     session["user"] = oauth.keycloak.parse_id_token(token, None)
     session["token"] = token
     return redirect("/")
