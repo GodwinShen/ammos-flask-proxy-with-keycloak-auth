@@ -127,12 +127,14 @@ def logout():
     return redirect(logout_url)
 
 if __name__ == "__main__":
-    HTTPConnection.debuglevel = 3
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() in ("1", "true", "yes")
+    if debug_mode:
+        HTTPConnection.debuglevel = 3
 
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True
+        logging.basicConfig()
+        logging.getLogger().setLevel(logging.DEBUG)
+        requests_log = logging.getLogger("requests.packages.urllib3")
+        requests_log.setLevel(logging.DEBUG)
+        requests_log.propagate = True
 
-    app.run(host="0.0.0.0", port=inbound_port, debug=True)
+    app.run(host="0.0.0.0", port=inbound_port, debug=debug_mode)
