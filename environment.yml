@@ -12,3 +12,4 @@ dependencies:
   - pip:
       - http.client
       - logging
+      - gunicorn
